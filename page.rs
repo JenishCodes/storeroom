@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::vec::Vec;
@@ -94,7 +93,8 @@ impl Page {
 
         let mut last_row_offset = PAGE_SIZE as u16;
         for (i, row) in self.rows.iter().enumerate() {
-            let row_data = row.to_bytes(self.schema.as_ref());
+            let row_data = row.to_bytes();
+
             buffer[self.row_offset[i] as usize..last_row_offset as usize]
                 .copy_from_slice(&row_data);
             last_row_offset = self.row_offset[i];
@@ -111,9 +111,9 @@ impl Page {
     pub fn add_row(&mut self, row: Row) -> io::Result<()> {
         let mut free_bytes = (PAGE_SIZE - PAGE_HEADER_SIZE) as u16;
         if self.row_count > 0 {
-            free_bytes = self.free_space_offset - self.row_offset[self.row_count as usize - 1];
+            free_bytes = self.row_offset[self.row_count as usize - 1] - self.free_space_offset;
         }
-        let row_data = row.to_bytes(self.schema.as_ref());
+        let row_data = row.to_bytes();
         let row_size = row_data.len();
 
         if free_bytes - (row_size as u16)
@@ -154,7 +154,7 @@ impl Page {
         println!("\nRows:");
         for row in &self.rows {
             println!("---------------------");
-            row.print(&self.schema, &self.columns);
+            row.print(&self.columns);
             println!("---------------------");
         }
     }
